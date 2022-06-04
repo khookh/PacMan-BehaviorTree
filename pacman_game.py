@@ -32,7 +32,7 @@ while playing:
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    dx, dy = action_from_state(arena.actors())
+    dx, dy = action_from_state(arena.actors(),pacman)
     pacman.direction(dx, dy)
     ###### TEMP
 
