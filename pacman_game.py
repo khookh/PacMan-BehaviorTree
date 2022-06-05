@@ -34,7 +34,7 @@ while playing:
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    if not c%30:
+    if not c%15:
         dx, dy = pb.action_from_state(arena.actors(), pacman)
     pacman.direction(dx, dy)
     ###### TEMP
