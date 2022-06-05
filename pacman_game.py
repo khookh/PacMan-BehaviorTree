@@ -28,13 +28,14 @@ sprites = pygame.image.load('pacman_sprites.png')
 playing = True
 pacman.direction(-2, 0)
 c = 0
+pb = PacmanBehavior()
 while playing:
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    if not c%15:
-        dx, dy = action_from_state(arena.actors(), pacman)
+    if not c%30:
+        dx, dy = pb.action_from_state(arena.actors(), pacman)
     pacman.direction(dx, dy)
     ###### TEMP
 
