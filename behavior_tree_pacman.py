@@ -8,24 +8,12 @@ class PacmanBehavior:
     def __init__(self):
         pass
 
-    def printPath(self, parent, j):
+    def printPath(self, parent, j, previous=None):
 
         # Base Case : If j is source
         if parent[j] == -1:
-            print(j, end=" ")
-            return
-        self.printPath(parent, parent[j])
-        print(j, end=" ")
-
-    # A utility function to print
-    # the constructed distance
-    # array
-    def printSolution(self, dist, parent):
-        src = 0
-        print("Vertex \t\tDistance from Source\tPath")
-        for i in range(1, len(dist)):
-            print("\n%d --> %d \t\t%d \t\t\t\t\t" % (src, i, dist[i]), end=" ")
-            self.printPath(parent, i)
+            return previous
+        return self.printPath(parent, parent[j], j)
 
     def lazy_dijkstras(self, graph, root):
         # https://pythonalgos.com/dijkstras-algorithm-in-5-steps-with-python/
@@ -127,6 +115,20 @@ class PacmanBehavior:
                 return True
         return False
 
+    def get_next_dir(self, graph, destination_key, nodes_list, current_pos):
+        """
+        :param graph: nodes (dictionnary)
+        :param destination_key : key of the destination in the graph (source is 0)
+        :return: next move
+        """
+        # we'll try to find to shortest path from pacman position to destination
+        dist, parent = self.lazy_dijkstras(graph, 0)
+        next_node = self.printPath(parent, destination_key)
+        next_point = nodes_list[next_node]
+        dir = (next_point[0] - current_pos[0], next_point[1] - current_pos[1])
+        norm = np.max(np.abs(dir))*0.5
+        return dir/norm
+
     def action_from_state(self, obs, player):
         """
         :param obs: current game state (arena.actors, list)
@@ -135,6 +137,7 @@ class PacmanBehavior:
         """
 
         pacman_x, pacman_y, w, h = player.rect()
+        print(f'Pacman position, x={pacman_x}, y={pacman_y}') #debug
 
         ghosts = []
         food = []
@@ -150,25 +153,34 @@ class PacmanBehavior:
         # list containing manathan distance from pacman to each ghost
         dist_ghost = [d[0] + d[1] for d in
                       np.abs([np.subtract(elem.get_pos(), (pacman_x, pacman_y)) for elem in ghosts])]
+        # example
+        for count, elem in enumerate(dist_ghost):
+            if elem < 50:
+                print(
+                    f'ghost is near at dist = {elem}, ghost number = {count}, at position = {ghosts[count].get_pos()}')
+        # example
 
-        destination = (175, 208)
+
+        """
+        PUT CODE HERE TO PROCESS THE INFORMATIONS (GHOSTS, WALLS, FOOD) based on tree rules
+        Then gives the destination you want pacman to go
+        """
+
+        # point on the map where you want to move pacman
+        destination = (175, 208) # example
+        print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
+        # generates a graph from the map
         graph_list, graph_dict = self.graph(player, obstacles=walls, destination=destination, dicti={},
                                             graph_list=[(pacman_x, pacman_y)], start_point=(pacman_x, pacman_y))
 
         index_destination = graph_list.index(destination)
-        # we'll try to find to shortest path from pacman position to destination
-        dist, parent = self.lazy_dijkstras(graph_dict, 0)
-        self.printSolution(dist,parent)
 
-        # print(len(graph_list),graph_list)
-
-        # example
-        for count, elem in enumerate(dist_ghost):
-            if elem < 50:
-                print(f'ghost is near dist = {elem}, ghost number = {count}, at position = {ghosts[count].get_pos()}')
+        # return the next move to reach the destination (from dijkstra shortest path)
+        next_move = self.get_next_dir(graph_dict, index_destination, graph_list, (pacman_x, pacman_y))
+        action_dx, action_dy = next_move[0], next_move[1]
 
         # 4 direction possible --> 1,0 | 0,1 | -1,0 | 0,-1 = right | up | left | down
         # example
-        action_dx, action_dy = -1, 0  # move pacman left
+        #action_dx, action_dy = -1, 0  # move pacman left
 
         return action_dx, action_dy

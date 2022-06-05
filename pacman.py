@@ -248,7 +248,7 @@ class Ghost(Actor):
         self._sprite = [64, 64 + self._color * 16]
 
     def start(self):  # Il fantasma inizia a muoversi
-        self._speed = 2
+        self._speed = 0.9
         self._dir = [0, -2]
         self._sprite = [64, 64 + self._color * 16]
 
@@ -256,7 +256,7 @@ class Ghost(Actor):
         return self._x, self._y
 
     def normal(self):  # Il fantasma torna a velocità normale
-        self._speed = 2
+        self._speed = 0.9
         if self._y == 112 and 92 <= self._x <= 128: self._gate = True  # Se è all'interno del recinto iniziale deve avere la possibilità di uscire
         if (self._dir[0] != 0 and self._x % 2 == 0) or (self._dir[1] != 0 and self._y % 2 == 0):
             self._dir = [self._dir[0] * 2, self._dir[1] * 2]
@@ -271,7 +271,7 @@ class Ghost(Actor):
         self._dir = [0, 0]
 
     def runaway(self):  # Il fantasma fa retrofront, diventa blu e rallenta
-        self._speed = 1
+        self._speed = 1.4
         if self._dir[0] != 0:
             self._dir[0] = -self._dir[0] / abs(self._dir[0])
         else:
@@ -279,7 +279,7 @@ class Ghost(Actor):
         self._sprite = [144, 64]
 
     def eaten(self):  # Il fantasma diventa gli "occhietti" e aumenta la propria velocità
-        self._speed = 4
+        self._speed = 1.4
         self._gate = True
         if (self._dir[0] != 0 and self._x % 4 == 0) or (self._dir[1] != 0 and self._y % 4 == 0):
             self._dir = [self._dir[0] * 4, self._dir[1] * 4]
