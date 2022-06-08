@@ -1,5 +1,6 @@
 from arena import *
 from pacman import *
+from map_graph import *
 import numpy as np
 import heapq
 
@@ -52,115 +53,92 @@ class PacmanBehavior:
                     dist[v] = dist[u] + l
                     parent[v] = u
                     heapq.heappush(pq, (dist[v], v))
+        print(dist, parent)
         return dist, parent
 
-    def get_next_moves(self, start_point, w, h, obs):
-        """
-        :param start_point: current pacman position
-        :param w: width
-        :param h: 'height'
-        :param obs: set of obstacles elements (wall & ghosts)
-        :return: set of possible movements
-        """
-        move_set = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-        next_move_set = []
-        for elem in move_set:
-            if not self.check_collision(start_point[0] + elem[0], start_point[1] + elem[1], w, h, obs):
-                next_move_set.append(elem)
-        return next_move_set
-
-    def check_elem(self, nms, nmsfp):
-        """
-        This function is used to check if there is a direction change (node) inside a corridor
-        :param nms: set of next moves given at the beginning of the corridor
-        :param nmsfp: current set of next moves
-        :return: True if a node has been reached
-        """
-        for elem in nmsfp:
-            if elem not in nms:
-                return True
-        return False
-
-    def check_destination(self, dest, cand, i):
-        """
-        :param dest: pacman destination point
-        :param cand: current point explored
-        :param i: precision
-        :return: True if the destination is reached in the graph
-        """
-        if cand[0] + i > dest[0] > cand[0] - i and cand[1] + i > dest[1] > cand[1] - i:
-            print('trou')
-            print(cand)
+    def check_between(self, val_1, val_2, check):
+        if val_1 >= check >= val_2 or val_2 >= check >= val_1:
             return True
         else:
             return False
 
-    def graph(self, player, obstacles, destination, graph_list, start_point, dicti={0: []}, depth=0):
-        """
-        :param player: pacman player object
-        :param obstacles: list of obstacles (walls & ghosts)
-        :param destination: destination point
-        :param graph_list: list of current nodes explored (starts empty)
-        :param start_point: starting position (of previous node)
-        :param dicti: dictionnary linking each node between them and the related distance cost
-        :param depth: current depth reached
-        :return: list of nodes explored and relation dictionnary
-        """
-        dic_index = graph_list.index(start_point)
-        if dic_index not in dicti:
-            dicti[dic_index] = []
-        pacman_x, pacman_y, w, h = player.rect()
-        next_move_set = self.get_next_moves(start_point, w, h, obstacles)
-        next_point_set = []
-        for elem in next_move_set:
-            i = 1
-            while i < 300:
-                next_point = (start_point[0] + i * elem[0], start_point[1] + i * elem[1])
-                next_move_set_from_point = self.get_next_moves(next_point, w, h, obstacles)
-                if self.check_elem(next_move_set, next_move_set_from_point) \
-                        or self.check_collision(next_point[0], next_point[1], w, h,
-                                                obstacles) :#or self.check_destination(destination, next_point, 1):
-                    break
-                i += 1
-            if next_point not in graph_list and depth < 5:
-                graph_list.append(next_point)
-                next_point_set.append(next_point)
-            if next_point in graph_list:
-                dicti[dic_index].append([graph_list.index(next_point), i])
-            if destination not in graph_list:
-                next_point_set.append(destination)
-                graph_list.append(destination)
-        if depth < 5:
-            for elem in next_point_set:
-                graph_list, dicti = self.graph(player=player, obstacles=obstacles, destination=destination,
-                                               graph_list=graph_list,
-                                               start_point=elem, dicti=dicti, depth=depth + 1)
-        return graph_list, dicti
+    def get_index_connection(self, graph_list, graph_dict, position):
 
-    def check_collision(self, x1, y1, w, h, a) -> bool:
-        """
-        :param x1: test pos (x) of pacman
-        :param y1: test pos (y) of pacman
-        :param w: width of pacman
-        :param h: height of pacman
-        :param a: actor element
-        :return: bool, true if collision
-        """
-        for elem in a:
-            x2, y2, w2, h2 = elem.rect()
-            if y2 < y1 + h and y1 < y2 + h2 and x2 < x1 + w and x1 < x2 + w2:
-                return True
-        return False
+        for key in graph_dict.keys():
+            node_1 = graph_list[key]
+            for elem in graph_dict[key]:
+                node_2 = graph_list[elem[0]]
+                if (node_1[0] == node_2[0] == position[0] and self.check_between(node_1[1], node_2[1], position[1])) or \
+                        (node_1[1] == node_2[1] == position[1] and self.check_between(node_1[0], node_2[0],
+                                                                                      position[0])) and not (
+                        key == 13 and elem[0] == 46) and not (key == 46 and elem[0] == 13):
+                    return (key, elem[0])
+        return None, None
 
-    def get_next_dir(self, graph, destination, nodes_list, current_pos):
+    def trim_graph(self, start, ghosts, destination, graph_list, graph_dict):
+        # step 1 : removes connection between nodes where a ghost is
+        for ghost_pos in [ghost.get_pos() for ghost in ghosts]:
+            from_, to_ = self.get_index_connection(graph_list, graph_dict, ghost_pos)
+            if from_ is not None:
+                new_ = []
+                for e in graph_dict[from_]:
+                    if e[0] != to_:
+                        new_.append(e)
+                graph_dict[from_] = new_
+                new_ = []
+                for e in graph_dict[to_]:
+                    if e[0] != from_:
+                        new_.append(e)
+                graph_dict[to_] = new_
+        # step 2 : add destination node to graph
+        from_, to_ = self.get_index_connection(graph_list, graph_dict, destination)
+        node_1, node_2 = graph_list[from_], graph_list[to_]
+        cost_1, cost_2 = abs(destination[0] - node_1[0]) + abs(destination[1] - node_1[1]), abs(
+            node_2[0] - destination[0]) + abs(node_2[1] - destination[1])
+        graph_list.append(destination)
+        new_index = len(graph_list) - 1
+        graph_dict[new_index] = [[from_, cost_1], [to_, cost_2]]
+        graph_dict[from_] = graph_dict[from_] + [[new_index, cost_1]]
+        graph_dict[to_] = graph_dict[to_] + [[new_index, cost_2]]
+        new_ = []
+        for e in graph_dict[from_]:
+            if e[0] != to_:
+                new_.append(e)
+        graph_dict[from_] = new_
+        new_ = []
+        for e in graph_dict[to_]:
+            if e[0] != from_:
+                new_.append(e)
+        graph_dict[to_] = new_
+
+        # step 3 : add starting node to graph
+
+        from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
+        node_1, node_2 = graph_list[from_], graph_list[to_]
+        cost_1, cost_2 = abs(start[0] - node_1[0]) + abs(start[1] - node_1[1]), abs(
+            node_2[0] - start[0]) + abs(node_2[1] - start[1])
+        graph_list.append(start)
+        new_index = len(graph_list) - 1
+        graph_dict[new_index] = [[from_, cost_1], [to_, cost_2]]
+        graph_dict[from_] = graph_dict[from_] + [[new_index, cost_1]]
+        graph_dict[to_] = graph_dict[to_] + [[new_index, cost_2]]
+
+
+        return graph_list, graph_dict
+
+    def get_next_dir(self, graph, destination, nodes_list_, current_pos):
         """
+        :param current_pos:
+        :param nodes_list:
+        :param destination:
         :param graph: nodes (dictionnary)
         :param destination_key : key of the destination in the graph (source is 0)
         :return: next move
         """
         # we'll try to find to shortest path from pacman position to destination
-        destination_key = nodes_list.index(destination)
-        dist, parent = self.lazy_dijkstras(graph, 0)
+        destination_key = nodes_list_.index(destination)
+        root_key = nodes_list_.index(current_pos)
+        dist, parent = self.lazy_dijkstras(graph, root_key)
         next_node = self.next_node(parent, destination_key)
         next_point = nodes_list[next_node]
         dir = (next_point[0] - current_pos[0], next_point[1] - current_pos[1])
@@ -181,6 +159,7 @@ class PacmanBehavior:
         ghosts = []
         food = []
         walls = []
+        bonus = []
         for elem in obs:
             if isinstance(elem, Ghost):
                 ghosts.append(elem)
@@ -188,10 +167,14 @@ class PacmanBehavior:
                 food.append(elem)
             elif isinstance(elem, Wall):
                 walls.append(elem)
-
+            elif isinstance(elem, Bonus):
+                # when pacman eats a bonus, he enters a bonus state (check with pacman.bonus_sprite) , it lasts a few
+                # seconds during which he cant eat ghosts
+                bonus.append(elem)
         # example list containing manathan distance from pacman to each ghost
         dist_ghost = [d[0] + d[1] for d in
                       np.abs([np.subtract(elem.get_pos(), (pacman_x, pacman_y)) for elem in ghosts])]
+
         # example
         for count, elem in enumerate(dist_ghost):
             if elem < 50:
@@ -204,12 +187,12 @@ class PacmanBehavior:
         """
 
         # point on the map where you want to move pacman
-        destination = (48, 7)  # destination = (175, 208) # example
+        destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
         # generates a graph from the map
-        self.graph_list, self.graph_dict = self.graph(player, obstacles=walls, destination=destination, dicti={},
-                                                      graph_list=[(pacman_x, pacman_y)],
-                                                      start_point=(pacman_x, pacman_y))
+        self.graph_list, self.graph_dict = self.trim_graph((pacman_x, pacman_y), ghosts=ghosts, destination=destination,
+                                                           graph_list=nodes_list, graph_dict=nodes_dic)
+        print(nodes_dic)
 
         # return the next move to reach the destination (from dijkstra shortest path)
         next_move = self.get_next_dir(self.graph_dict, destination, self.graph_list, (pacman_x, pacman_y))

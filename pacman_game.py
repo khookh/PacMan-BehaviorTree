@@ -7,7 +7,7 @@ import pygame
 from arena import *
 from pacman import *
 from behavior_tree_pacman import *
-
+from pygame.locals import (KEYDOWN, K_RIGHT, K_d, K_LEFT, K_a, K_UP, K_w, K_DOWN, K_s, K_ESCAPE)
 ## Costanti
 
 
@@ -34,12 +34,27 @@ while playing:
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    if not c%15:
-        dx, dy = pb.action_from_state(arena.actors(), pacman)
+    dx, dy = pb.action_from_state(arena.actors(), pacman)
     pacman.direction(dx, dy)
     ###### TEMP
-
+    for e in pygame.event.get():
+        if e.type == pygame.QUIT:
+            playing = False
+            esc = True
+        elif e.type == pygame.KEYDOWN:
+            if e.key in (K_RIGHT, K_d):
+                pacman.direction(2, 0)
+            elif e.key in (K_LEFT, K_a):
+                pacman.direction(-2, 0)
+            elif e.key in (K_UP, K_w):
+                pacman.direction(0, -2)
+            elif e.key in (K_DOWN, K_s):
+                pacman.direction(0, 2)
+            if e.key == pygame.K_ESCAPE:
+                playing = False
+                esc = True
     arena.move_all()
+    print(pacman.rect())
     ## Stampa a video dei personaggi
     for a in arena.actors():
         if not isinstance(a, Wall) and not isinstance(a, Gate):
