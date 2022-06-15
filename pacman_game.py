@@ -8,6 +8,8 @@ from arena import *
 from pacman import *
 from behavior_tree_pacman import *
 from pygame.locals import (KEYDOWN, K_RIGHT, K_d, K_LEFT, K_a, K_UP, K_w, K_DOWN, K_s, K_ESCAPE)
+from behavior_tree import *
+import time
 ## Costanti
 
 
@@ -28,15 +30,18 @@ sprites = pygame.image.load('pacman_sprites.png')
 playing = True
 pacman.direction(-2, 0)
 c = 0
-pb = PacmanBehavior()
+#pb = PacmanBehavior()
+btree = BehaviorTree(arena)
 while playing:
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    dx, dy = pb.action_from_state(arena.actors(), pacman)
-    pacman.direction(dx, dy)
+    #dx, dy = pb.action_from_state(arena.actors(), pacman)
+    #pacman.direction(dx, dy)
     ###### TEMP
+    #btree.tick_tree()
+
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             playing = False
@@ -54,7 +59,7 @@ while playing:
                 playing = False
                 esc = True
     arena.move_all()
-    print(pacman.rect())
+    #print(pacman.rect())
     ## Stampa a video dei personaggi
     for a in arena.actors():
         if not isinstance(a, Wall) and not isinstance(a, Gate):
@@ -101,3 +106,4 @@ while playing:
     clock.tick(FRAME_RATE)
     c += 1
 if esc: pygame.quit()
+btree.tick_tree()
