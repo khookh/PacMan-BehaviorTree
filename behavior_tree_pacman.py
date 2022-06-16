@@ -13,6 +13,7 @@ class PacmanBehavior:
         self.dir = 0
         self.action_dx = 0
         self.action_dy = 0
+        self.list_cookies_pos = []
 
     def get_next_moves(self, start_point, w, h, obs):
         move_set = [(1, 0), (-1, 0), (0, 1), (0, -1)]
@@ -173,6 +174,32 @@ class PacmanBehavior:
         norm = np.max(np.abs(dir))
         return dir / norm
 
+    def correct_cookie_position(self, food_pos, nodes_list_, nodes_dic_):
+        best_found = 0
+        dist = 100000
+        is_ix = False
+        for key in nodes_dic_.keys():
+            node_1 = nodes_list_[key]
+            for elem in nodes_dic_[key]:
+                node_2 = nodes_list_[elem[0]]
+                if not (key == 13 and elem[0] == 46) and not (key == 46 and elem[0] == 13):
+                    if node_1[0] == node_2[0] and self.check_between(node_1[1], node_2[1], food_pos[1]):
+                        if abs(node_1[0] - food_pos[0]) < dist:
+                            dist = abs(node_1[0] - food_pos[0])
+                            best_found = node_1[0]
+                            is_ix = True
+
+                    if node_1[1] == node_2[1] and self.check_between(node_1[0], node_2[0], food_pos[0]):
+                        if abs(node_1[1] - food_pos[1]) < dist:
+                            dist = abs(node_1[1] - food_pos[1])
+                            best_found = node_1[1]
+                            is_ix = False
+
+        if is_ix:
+            return tuple((best_found, food_pos[1]))
+        else:
+            return tuple((food_pos[0], best_found))
+
     def action_from_state(self, obs, player):
         """
         :param obs: current game state (arena.actors, list)
@@ -192,7 +219,8 @@ class PacmanBehavior:
             if isinstance(elem, Ghost):
                 ghosts.append(elem)
             elif isinstance(elem, Cookie):
-                food.append(elem)
+                if elem.get_pos() not in self.list_cookies_pos:
+                    food.append(elem)
             elif isinstance(elem, Wall):
                 walls.append(elem)
             elif isinstance(elem, Bonus):
@@ -203,7 +231,6 @@ class PacmanBehavior:
         dist_ghost = [d[0] + d[1] for d in
                       np.abs([np.subtract(elem.get_pos(), (pacman_x, pacman_y)) for elem in ghosts])]
 
-        destination = (48, 8)
         # example
         for count, elem in enumerate(dist_ghost):
             if elem < 50:
@@ -241,12 +268,6 @@ class PacmanBehavior:
         elif len(possible_moves) > 0:
             pm = possible_moves[0]
             self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
-
-        dx = destination[0] - pacman_x
-        dy = destination[1] - pacman_y
-        dm = max(dx, dy)
-        if abs(dx + dy) < 5 and dm != 0:
-            self.action_dx, self.action_dy = int(abs(dx) / dm), int(abs(dy) / dm)
 
         # 4 direction possible --> 1,0 | 0,1 | -1,0 | 0,-1 = right | up | left | down
         # example
