@@ -10,6 +10,32 @@ class PacmanBehavior:
         self.graph_list = None
         self.graph_dict = None
         self.count = 0
+        self.dir = 0
+        self.action_dx = 0
+        self.action_dy = 0
+
+    def get_next_moves(self, start_point, w, h, obs):
+        move_set = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        next_move_set = []
+        for elem in move_set:
+            if not self.check_collision(start_point[0] + elem[0], start_point[1] + elem[1], w, h, obs):
+                next_move_set.append(elem)
+        return next_move_set
+
+    def check_collision(self, x1, y1, w, h, a) -> bool:
+        """
+        :param x1: test pos (x) of pacman
+        :param y1: test pos (y) of pacman
+        :param w: width of pacman
+        :param h: height of pacman
+        :param a: actor element
+        :return: bool, true if collision
+        """
+        for elem in a:
+            x2, y2, w2, h2 = elem.rect()
+            if y2 < y1 + h and y1 < y2 + h2 and x2 < x1 + w and x1 < x2 + w2:
+                return True
+        return False
 
     def next_node(self, parent, j, previous=None):
         """
@@ -53,7 +79,6 @@ class PacmanBehavior:
                     dist[v] = dist[u] + l
                     parent[v] = u
                     heapq.heappush(pq, (dist[v], v))
-        print(dist, parent)
         return dist, parent
 
     def check_between(self, val_1, val_2, check):
@@ -90,7 +115,20 @@ class PacmanBehavior:
                     if e[0] != from_:
                         new_.append(e)
                 graph_dict[to_] = new_
-        # step 2 : add destination node to graph
+
+        # step 2 : add starting node to graph
+
+        from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
+        node_1, node_2 = graph_list[from_], graph_list[to_]
+        cost_1, cost_2 = abs(start[0] - node_1[0]) + abs(start[1] - node_1[1]), abs(
+            node_2[0] - start[0]) + abs(node_2[1] - start[1])
+        graph_list.append(start)
+        new_index = len(graph_list) - 1
+        graph_dict[new_index] = [[from_, cost_1], [to_, cost_2]]
+        graph_dict[from_] = graph_dict[from_] + [[new_index, cost_1]]
+        graph_dict[to_] = graph_dict[to_] + [[new_index, cost_2]]
+
+        # step 3 : add destination node to graph
         from_, to_ = self.get_index_connection(graph_list, graph_dict, destination)
         node_1, node_2 = graph_list[from_], graph_list[to_]
         cost_1, cost_2 = abs(destination[0] - node_1[0]) + abs(destination[1] - node_1[1]), abs(
@@ -111,23 +149,11 @@ class PacmanBehavior:
                 new_.append(e)
         graph_dict[to_] = new_
 
-        # step 3 : add starting node to graph
-
-        from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
-        node_1, node_2 = graph_list[from_], graph_list[to_]
-        cost_1, cost_2 = abs(start[0] - node_1[0]) + abs(start[1] - node_1[1]), abs(
-            node_2[0] - start[0]) + abs(node_2[1] - start[1])
-        graph_list.append(start)
-        new_index = len(graph_list) - 1
-        graph_dict[new_index] = [[from_, cost_1], [to_, cost_2]]
-        graph_dict[from_] = graph_dict[from_] + [[new_index, cost_1]]
-        graph_dict[to_] = graph_dict[to_] + [[new_index, cost_2]]
-
-
         return graph_list, graph_dict
 
     def get_next_dir(self, graph, destination, nodes_list_, current_pos):
         """
+        :param nodes_list_:
         :param current_pos:
         :param nodes_list:
         :param destination:
@@ -140,7 +166,9 @@ class PacmanBehavior:
         root_key = nodes_list_.index(current_pos)
         dist, parent = self.lazy_dijkstras(graph, root_key)
         next_node = self.next_node(parent, destination_key)
-        next_point = nodes_list[next_node]
+        if next_node is None:
+            return (0, 0)
+        next_point = nodes_list_[next_node]
         dir = (next_point[0] - current_pos[0], next_point[1] - current_pos[1])
         norm = np.max(np.abs(dir))
         return dir / norm
@@ -152,7 +180,7 @@ class PacmanBehavior:
         :return: selected move
         """
 
-        global count
+        global count, action_dx, action_dy
         pacman_x, pacman_y, w, h = player.rect()
         print(f'Pacman position, x={pacman_x}, y={pacman_y}')  # debug
 
@@ -175,6 +203,7 @@ class PacmanBehavior:
         dist_ghost = [d[0] + d[1] for d in
                       np.abs([np.subtract(elem.get_pos(), (pacman_x, pacman_y)) for elem in ghosts])]
 
+        destination = (48, 8)
         # example
         for count, elem in enumerate(dist_ghost):
             if elem < 50:
@@ -187,19 +216,41 @@ class PacmanBehavior:
         """
 
         # point on the map where you want to move pacman
-        destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
+        # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
+        destination = (48, 8)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
-        # generates a graph from the map
-        self.graph_list, self.graph_dict = self.trim_graph((pacman_x, pacman_y), ghosts=ghosts, destination=destination,
-                                                           graph_list=nodes_list, graph_dict=nodes_dic)
-        print(nodes_dic)
 
-        # return the next move to reach the destination (from dijkstra shortest path)
-        next_move = self.get_next_dir(self.graph_dict, destination, self.graph_list, (pacman_x, pacman_y))
-        action_dx, action_dy = int(next_move[0]), int(next_move[1])
+        try:
+            # generates a graph from the map
+            self.graph_list, self.graph_dict = self.trim_graph((pacman_x, pacman_y), ghosts=ghosts,
+                                                               destination=destination,
+                                                               graph_list=nodes_list.copy(),
+                                                               graph_dict=nodes_dic.copy())
+
+            # return the next move to reach the destination (from dijkstra shortest path)
+            next_move = self.get_next_dir(self.graph_dict, destination, self.graph_list, (pacman_x, pacman_y))
+
+        except:
+            next_move = (self.action_dx, self.action_dy)
+
+        # hardcode collision check, because the graph is not perfect --> because the walls and object position has
+        # been coded with the ass...
+        possible_moves = self.get_next_moves((pacman_x, pacman_y), w, h, ghosts + walls)
+        if tuple(next_move) in possible_moves:
+            self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
+        elif len(possible_moves) > 0:
+            pm = possible_moves[0]
+            self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
+
+        dx = destination[0] - pacman_x
+        dy = destination[1] - pacman_y
+        dm = max(dx, dy)
+        if abs(dx + dy) < 5 and dm != 0:
+            self.action_dx, self.action_dy = int(abs(dx) / dm), int(abs(dy) / dm)
 
         # 4 direction possible --> 1,0 | 0,1 | -1,0 | 0,-1 = right | up | left | down
         # example
         # action_dx, action_dy = -1, 0  # move pacman left
         self.count += 1
-        return action_dx, action_dy
+
+        return self.action_dx, self.action_dy

@@ -124,7 +124,8 @@ class Bonus(Actor):
 
     def getGate(self) -> bool:
         return False
-
+    def get_pos(self):
+        return self._x, self._y
     def getStatus(self) -> int:
         return self._status
 
@@ -200,7 +201,7 @@ class Power(Actor):
 class Ghost(Actor):
     W, H = 16, 16
 
-    def __init__(self, arena, x: int, y: int, color: int):
+    def __init__(self, arena, x:int, y:int, color:int):
         self._start_x, self._start_y = x, y
         self._color = color
         self._speed = 0
@@ -211,7 +212,7 @@ class Ghost(Actor):
         self._arena.add(self)
         self._behav = random.randint(0, 1)
         self._behav_count = random.randint(0, 50)
-        self._gate = False  # Quando True il fantasma può attraversare il cancello del recinto iniziale
+        self._gate = False # Quando True il fantasma può attraversare il cancello del recinto iniziale
 
     def getStatus(self) -> int:
         return self._status
@@ -227,128 +228,113 @@ class Ghost(Actor):
         ## 2 -> Power Pac-Man
         ## 3 -> Power Pac-Man in conclusione
         ## 4 -> mangiato da Pac-Man durante stato 2/3
-        if status == -1:
-            self.pos_init()
+        if status == -1: self.pos_init()
         elif status == 0:
-            if self._status == 3:
-                self.normal()
-            else:
-                self.start()
-        elif status == 1:
-            self.stop()
-        elif status == 2:
-            self.runaway()
-        elif status == 4:
-            self.eaten()
+            if self._status == 3: self.normal()
+            else: self.start()
+        elif status == 1: self.stop()
+        elif status == 2: self.runaway()
+        elif status == 4: self.eaten()
         self._status = status
         self._counter = 0
 
-    def pos_init(self):  # La posizione del fantasma viene ripristinata a quella iniziale
+    def pos_init(self): # La posizione del fantasma viene ripristinata a quella iniziale
         self._x, self._y = self._start_x, self._start_y
-        self._sprite = [64, 64 + self._color * 16]
+        self._sprite = [64, 64 + self._color*16]
 
-    def start(self):  # Il fantasma inizia a muoversi
-        self._speed = 0.9
+    def start(self): # Il fantasma inizia a muoversi
+        self._speed = 1
         self._dir = [0, -2]
-        self._sprite = [64, 64 + self._color * 16]
+        self._sprite = [64, 64 + self._color*16]
+
+    def normal(self): # Il fantasma torna a velocità normale
+        self._speed = 1
+        if self._y == 112 and 92 <= self._x <= 128: self._gate = True # Se è all'interno del recinto iniziale deve avere la possibilità di uscire
+        if (self._dir[0] != 0 and self._x % 2 == 0) or (self._dir[1] != 0 and self._y % 2 == 0):
+            self._dir = [self._dir[0]*2, self._dir[1]*2]
+        else:
+            self._x += self._dir[0]
+            self._y += self._dir[1]
+            self._dir = [self._dir[0]*2, self._dir[1]*2]
+        self._sprite = [0, 64 + self._color*16]
+
+    def stop(self): # Il fantasma si ferma
+        self._speed = 0
+        self._dir = [0, 0]
+
+    def runaway(self): # Il fantasma fa retrofront, diventa blu e rallenta
+        self._speed = 2
+        if self._dir[0] != 0: self._dir[0] = -self._dir[0]/abs(self._dir[0])
+        else: self._dir[1] = -self._dir[1]/abs(self._dir[1])
+        self._sprite = [144, 64]
+
+    def eaten(self): # Il fantasma diventa gli "occhietti" e aumenta la propria velocità
+        self._speed = 1
+        self._gate = True
+        if (self._dir[0] != 0 and self._x % 4 == 0) or (self._dir[1] != 0 and self._y % 4 == 0):
+            self._dir = [self._dir[0]*4, self._dir[1]*4]
+        else:
+            self._x += 4 - self._x % 4
+            self._y += 4 - self._y % 4
+            self._dir = [self._dir[0]*4, self._dir[1]*4]
+        self._sprite = [128, 80]
 
     def get_pos(self):
         return self._x, self._y
 
-    def normal(self):  # Il fantasma torna a velocità normale
-        self._speed = 0.9
-        if self._y == 112 and 92 <= self._x <= 128: self._gate = True  # Se è all'interno del recinto iniziale deve avere la possibilità di uscire
-        if (self._dir[0] != 0 and self._x % 2 == 0) or (self._dir[1] != 0 and self._y % 2 == 0):
-            self._dir = [self._dir[0] * 2, self._dir[1] * 2]
-        else:
-            self._x += self._dir[0]
-            self._y += self._dir[1]
-            self._dir = [self._dir[0] * 2, self._dir[1] * 2]
-        self._sprite = [0, 64 + self._color * 16]
-
-    def stop(self):  # Il fantasma si ferma
-        self._speed = 0
-        self._dir = [0, 0]
-
-    def runaway(self):  # Il fantasma fa retrofront, diventa blu e rallenta
-        self._speed = 1.4
-        if self._dir[0] != 0:
-            self._dir[0] = -self._dir[0] / abs(self._dir[0])
-        else:
-            self._dir[1] = -self._dir[1] / abs(self._dir[1])
-        self._sprite = [144, 64]
-
-    def eaten(self):  # Il fantasma diventa gli "occhietti" e aumenta la propria velocità
-        self._speed = 1.4
-        self._gate = True
-        if (self._dir[0] != 0 and self._x % 4 == 0) or (self._dir[1] != 0 and self._y % 4 == 0):
-            self._dir = [self._dir[0] * 4, self._dir[1] * 4]
-        else:
-            self._x += 4 - self._x % 4
-            self._y += 4 - self._y % 4
-            self._dir = [self._dir[0] * 4, self._dir[1] * 4]
-        self._sprite = [128, 80]
-
     def move(self):
         Arena_W, Arena_H = self._arena.size()
-        angles = ((0, 0), (232, 0), (0, 232), (232, 232))
+        angles = ((0,0),(232,0),(0,232),(232,232))
         ## Controllo dei confini dell'arena
-        if self._x < self._speed - self.W:
-            self._x = Arena_W - self._speed
-        elif self._x > Arena_W - self._speed:
-            self._x = self._speed - self.W
+        if self._x < self._speed - self.W: self._x = Arena_W - self._speed
+        elif self._x > Arena_W - self._speed: self._x = self._speed - self.W
         ## Creazione della lista delle sole direzioni possibili
         dirs = []
         if not self._arena.going_to_wall(self, self._dir[0], self._dir[1]): dirs.append(self._dir)
         if self._dir[0] == 0:
-            if not self._arena.going_to_wall(self, self._speed, 0): dirs.append([self._speed, 0])
+            if not self._arena.going_to_wall(self, self._speed, 0): dirs.append([self._speed,0])
             if not self._arena.going_to_wall(self, -self._speed, 0): dirs.append([-self._speed, 0])
         else:
             if not self._arena.going_to_wall(self, 0, self._speed): dirs.append([0, self._speed])
             if not self._arena.going_to_wall(self, 0, -self._speed): dirs.append([0, -self._speed])
 
         ## Il fantasma fa retrofront solo se non può fare nient'altro
-        if len(dirs) == 0:
-            self._dir = [-self._dir[0], -self._dir[1]]
+        if len(dirs) == 0: self._dir = [-self._dir[0], -self._dir[1]]
         ## Modalità Frightened (movimenti a random)
-        elif self._status in [2, 3]:
-            self._dir = random.choice(dirs)
+        elif self._status in [2, 3]: self._dir = random.choice(dirs)
         else:
             ## Selezione dell'obiettivo (xt, yt)
-            if self._gate and self._status != 4:  # Il fantasma esce dal recinto iniziale per entrare in gioco
+            if self._gate and self._status != 4: # Il fantasma esce dal recinto iniziale per entrare in gioco
                 xt, yt = 108, 88
                 if self._x == xt and self._y == yt:
                     self.status(0)
                     self._gate = False
-            elif self._status == 4:  # Il fantasma ritorna dentro il recinto iniziale quando viene mangiato da PacMan
-                xt, yt = 108, 112
+            elif self._status == 4: # Il fantasma ritorna dentro il recinto iniziale quando viene mangiato da PacMan
+                xt,yt = 108, 112
                 if self._x == xt and self._y == yt:
                     self.status(0)
                     self._gate = True
-            elif self._behav == 0:  # Modalità Scatter (pattugliamento dell'angolo)
-                xt, yt = angles[self._color]
-                if self._behav_count == FRAME_RATE * 7:
+            elif self._behav == 0: # Modalità Scatter (pattugliamento dell'angolo)
+                xt,yt = angles[self._color]
+                if self._behav_count == FRAME_RATE*7:
                     self._behav_count = 0
                     self._behav = 1
-                else:
-                    self._behav_count += 1
-            elif self._behav == 1:  # Modalità Chase (inseguimento di Pac-Man)
+                else: self._behav_count += 1
+            elif self._behav == 1: # Modalità Chase (inseguimento di Pac-Man)
                 for a in self._arena.actors():
                     if isinstance(a, PacMan):
                         xt, yt, w, h = a.rect()
-                if self._behav_count == FRAME_RATE * 7:
+                if self._behav_count == FRAME_RATE*7:
                     self._behav_count = 0
                     self._behav = 0
-                else:
-                    self._behav_count += 1
+                else: self._behav_count += 1
 
-            if len(dirs) == 1:
-                self._dir = dirs[0]
-            else:  # Calcolo della distanza minore per raggiungere l'obiettivo
+            if len(dirs) == 1: self._dir = dirs[0]
+            else: # Calcolo della distanza minore per raggiungere l'obiettivo
                 x, y = self._x, self._y
                 distances = []
                 for i in range(len(dirs)):
-                    dist = ((x + dirs[i][0] * 8 - xt) ** 2 + (y + dirs[i][1] * 8 - yt) ** 2) ** (1 / 2)
+                    dist = ((x + dirs[i][0]*8 - xt)**2 + (y + dirs[i][1]*8 - yt)**2)**(1/2)
                     distances.append(dist)
                 dist_min = distances[0]
                 dir_min = 0
@@ -365,84 +351,60 @@ class Ghost(Actor):
         # Status -1
         if self._status == -1:
             if self._counter % 3 == 0:
-                if self._sprite[0] == 64:
-                    self._sprite[0] = 80
-                else:
-                    self._sprite[0] = 64
-            if self._counter == 5 * FRAME_RATE:
-                if self._color == 0:
-                    self.status(0)
-                else:
-                    self.start()
-            if self._counter == 5 * FRAME_RATE + 90 * self._color:
+                if self._sprite[0] == 64: self._sprite[0] = 80
+                else: self._sprite[0] = 64
+            if self._counter == 5*FRAME_RATE:
+                if self._color == 0: self.status(0)
+                else: self.start()
+            if self._counter == 5*FRAME_RATE + 90*self._color:
                 if self._color != 0: self._gate = True
             self._counter += 1
         ## Status 0
         elif self._status == 0 and self._counter == 3:
-            if self._dir == [self._speed, 0]:
-                if self._sprite[0] == 0:
-                    self._sprite[0] = 16
-                else:
-                    self._sprite[0] = 0
-            elif self._dir == [-self._speed, 0]:
-                if self._sprite[0] == 32:
-                    self._sprite[0] = 48
-                else:
-                    self._sprite[0] = 32
-            elif self._dir == [0, -self._speed]:
-                if self._sprite[0] == 64:
-                    self._sprite[0] = 80
-                else:
-                    self._sprite[0] = 64
-            elif self._dir == [0, self._speed]:
-                if self._sprite[0] == 96:
-                    self._sprite[0] = 112
-                else:
-                    self._sprite[0] = 96
+            if self._dir == [self._speed,0]:
+                if self._sprite[0] == 0: self._sprite[0] = 16
+                else: self._sprite[0] = 0
+            elif self._dir == [-self._speed,0]:
+                if self._sprite[0] == 32: self._sprite[0] = 48
+                else: self._sprite[0] = 32
+            elif self._dir == [0,-self._speed]:
+                if self._sprite[0] == 64: self._sprite[0] = 80
+                else: self._sprite[0] = 64
+            elif self._dir == [0,self._speed]:
+                if self._sprite[0] == 96: self._sprite[0] = 112
+                else: self._sprite[0] = 96
             self._counter = 0
         ## Status 1
         elif self._status == 1:
-            if self._counter == FRAME_RATE:
-                self._sprite = [96, 128]
-            elif self._counter == FRAME_RATE * 3:
+            if self._counter == FRAME_RATE: self._sprite = [96, 128]
+            elif self._counter == FRAME_RATE*3:
                 self.status(-1)
                 return [96, 128]
             self._counter += 1
         ## Status 2
         elif self._status == 2 and self._counter % 3 == 0:
-            if self._sprite[0] == 128:
-                self._sprite[0] = 144
-            elif self._sprite[0] == 144:
-                self._sprite[0] = 128
+            if self._sprite[0] == 128: self._sprite[0] = 144
+            elif self._sprite[0] == 144: self._sprite[0] = 128
             self._counter += 1
-        elif self._status == 2 and self._counter >= FRAME_RATE * 6:
+        elif self._status == 2 and self._counter >= FRAME_RATE*6:
             self.status(3)
         ## Status 3
-        elif self._status == 3 and self._counter % 3 == 0:
-            if self._sprite[0] == 128:
-                self._sprite[0] = 144
-            elif self._sprite[0] == 144:
-                self._sprite[0] = 160
-            elif self._sprite[0] == 160:
-                self._sprite[0] = 176
-            elif self._sprite[0] == 176:
-                self._sprite[0] = 128
+        elif self._status == 3 and  self._counter % 3 == 0:
+            if self._sprite[0] == 128: self._sprite[0] = 144
+            elif self._sprite[0] == 144: self._sprite[0] = 160
+            elif self._sprite[0] == 160: self._sprite[0] = 176
+            elif self._sprite[0] == 176: self._sprite[0] = 128
             self._counter += 1
-        elif self._status == 3 and self._counter >= FRAME_RATE * 3:
+        elif self._status == 3 and self._counter >= FRAME_RATE*3:
             self.status(0)
         ## Status 4
         elif self._status == 4:
-            if self._dir == [self._speed, 0]:
-                self._sprite[0] = 128
-            elif self._dir == [-self._speed, 0]:
-                self._sprite[0] = 144
-            elif self._dir == [0, -self._speed]:
-                self._sprite[0] = 160
-            elif self._dir == [0, self._speed]:
-                self._sprite[0] = 176
+            if self._dir == [self._speed,0]: self._sprite[0] = 128
+            elif self._dir == [-self._speed,0]: self._sprite[0] = 144
+            elif self._dir == [0,-self._speed]:  self._sprite[0] = 160
+            elif self._dir == [0,self._speed]: self._sprite[0] = 176
             self._counter = 0
-        else:
-            self._counter += 1
+        else: self._counter += 1
         return self._sprite[0], self._sprite[1]
 
 
