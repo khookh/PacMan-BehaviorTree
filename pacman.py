@@ -2,6 +2,7 @@ from arena import *
 from pacman_map import *
 import random
 import pygame
+from math import sqrt
 
 pygame.init()  # Si utilizza pygame per la riproduzione dei suoni
 
@@ -44,6 +45,67 @@ class PacmanArena(Arena):
         ## condizione di sconfitta
         if self._lifes == -1: result = 2
         return result  # 0 -> continua a giocare, 1 -> hai vinto, 2 -> hai perso
+
+    def powerLeft(self):  # Ammar function
+        is_power = False
+        for a in self._actors:
+            if isinstance(a, Power):
+                is_power = True
+                break
+        return is_power
+
+    def getClosestPower(self):      # Ammar function
+        pacman = self.getPacMan()
+        closestPower, dist = None, None
+        for a in self._actors:
+            if isinstance(a, Power):
+                if closestPower is None:
+                    closestPower = a
+                    dist = self.euclideanDistance(pacman, closestPower)
+                elif self.euclideanDistance(pacman, a) < dist:
+                    closestPower = a
+                    dist = self.euclideanDistance(pacman, closestPower)
+        return closestPower
+
+    def euclideanDistance(self, elem1, elem2):  # Ammar function
+        pos1_x, pos1_y = elem1.get_pos()
+        pos2_x, pos2_y = elem2.get_pos()
+        return sqrt((pos1_x - pos2_x) ** 2 + (pos1_y - pos2_y) ** 2)
+
+    def getPacMan(self):    # Ammar function
+        pacman = None
+        for a in self._actors:
+            if isinstance(a, PacMan):
+                pacman = a
+                break
+        return pacman
+
+    def getClosestFood(self):   # Ammar function
+        closestFood, dist = None, None
+        pacman = self.getPacMan()
+        print("Pacman pos = ", pacman.get_pos())
+        for a in self._actors:
+            if isinstance(a, Cookie):
+                if closestFood is None:
+                    closestFood = a
+                    dist = self.euclideanDistance(pacman, closestFood)
+                elif self.euclideanDistance(pacman, a) < dist:
+                    closestFood = a
+                    dist = self.euclideanDistance(pacman, closestFood)
+        return closestFood
+
+    def ghostTooClose(self):  # Ammar function
+        tooClose = False
+        safe_distance = 30      # Parameter
+        pacman = self.getPacMan()
+        for a in self._actors:
+            if isinstance(a, Ghost):
+                distancePacGhost = self.euclideanDistance(pacman, a)
+                #print(distancePacGhost)
+                if distancePacGhost < safe_distance:
+                    tooClose = True
+                    break
+        return tooClose
 
     def sound(self, i: int):
         return self._sounds[i]
@@ -167,6 +229,8 @@ class Cookie(Actor):
                 self._arena.sound(2).play()
                 self._arena.remove(self)
 
+    def get_pos(self):  # added Ammar
+        return self._x, self._y
 
 class Power(Actor):
     W, H = 8, 8
@@ -196,6 +260,9 @@ class Power(Actor):
                 for a in self._arena.actors():
                     if isinstance(a, Ghost) and a.getStatus() != 4 and a.getStatus() != 5:
                         a.status(2)
+
+    def get_pos(self):  # added Ammar
+        return self._x, self._y
 
 
 class Ghost(Actor):
