@@ -173,8 +173,9 @@ class PacmanBehavior:
         norm = np.max(np.abs(dir))
         return dir / norm
 
-    def action_from_state(self, obs, player):
+    def action_from_state(self, obs, player, destination=(48, 8)):
         """
+        :param destination:
         :param obs: current game state (arena.actors, list)
         :param player: pacman object
         :return: selected move
@@ -217,7 +218,7 @@ class PacmanBehavior:
 
         # point on the map where you want to move pacman
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
-        destination = (48, 8)
+        destination = (12, 188)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
 
         try:
@@ -227,6 +228,7 @@ class PacmanBehavior:
                                                                graph_list=nodes_list.copy(),
                                                                graph_dict=nodes_dic.copy())
 
+            destination = self.correct_cookie_position(destination, self.graph_list, self.graph_dic)
             # return the next move to reach the destination (from dijkstra shortest path)
             next_move = self.get_next_dir(self.graph_dict, destination, self.graph_list, (pacman_x, pacman_y))
 
@@ -254,3 +256,36 @@ class PacmanBehavior:
         self.count += 1
 
         return self.action_dx, self.action_dy
+
+
+def correct_cookie_position(self, food_pos, graph_list_, graph_dic_):
+    """
+    :param food_pos: position you want to correct (tuple (x,y))
+    :param graph_list_: list of nodes in the graph
+    :param graph_dic_: dictionnary of relation between nodes in the graph
+    :return: corrected position (tuple(x,y))
+    """
+    best_found = 0
+    dist = 100000
+    is_ix = False
+    for key in graph_dic_.keys():
+        node_1 = graph_list_[key]
+        for elem in graph_dic_[key]:
+            node_2 = graph_list_[elem[0]]
+            if not (key == 13 and elem[0] == 46) and not (key == 46 and elem[0] == 13):
+                if node_1[0] == node_2[0] and self.check_between(node_1[1], node_2[1], food_pos[1]):
+                    if abs(node_1[0] - food_pos[0]) < dist:
+                        dist = abs(node_1[0] - food_pos[0])
+                        best_found = node_1[0]
+                        is_ix = True
+
+                if node_1[1] == node_2[1] and self.check_between(node_1[0], node_2[0], food_pos[0]):
+                    if abs(node_1[1] - food_pos[1]) < dist:
+                        dist = abs(node_1[1] - food_pos[1])
+                        best_found = node_1[1]
+                        is_ix = False
+
+    if is_ix:
+        return tuple((best_found, food_pos[1]))
+    else:
+        return tuple((food_pos[0], best_found))

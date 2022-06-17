@@ -83,7 +83,7 @@ class PacmanArena(Arena):
     def getClosestFood(self):   # Ammar function
         closestFood, dist = None, None
         pacman = self.getPacMan()
-        print("Pacman pos = ", pacman.get_pos())
+        #print("Pacman pos = ", pacman.get_pos())
         for a in self._actors:
             if isinstance(a, Cookie):
                 if closestFood is None:

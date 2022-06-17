@@ -30,17 +30,24 @@ sprites = pygame.image.load('pacman_sprites.png')
 playing = True
 pacman.direction(-2, 0)
 c = 0
-#pb = PacmanBehavior()
-btree = BehaviorTree(arena)
+pb = PacmanBehavior()
+#btree = BehaviorTree(arena, pacman)
+#btree.tick_tree()
+
+#pacpos = pacman.get_pos()
 while playing:
+    #count += 1
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    #dx, dy = pb.action_from_state(arena.actors(), pacman)
-    #pacman.direction(dx, dy)
+    dx, dy = pb.action_from_state(arena.actors(), pacman)
+    pacman.direction(dx, dy)
     ###### TEMP
-    #btree.tick_tree()
+    #if pacpos != pacman.get_pos():
+    #    btree.tick_tree()
+    #    pacpos = pacman.get_pos()
+
 
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
@@ -106,4 +113,4 @@ while playing:
     clock.tick(FRAME_RATE)
     c += 1
 if esc: pygame.quit()
-btree.tick_tree()
+#btree.tick_tree()
