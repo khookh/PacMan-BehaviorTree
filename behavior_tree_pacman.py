@@ -118,7 +118,6 @@ class PacmanBehavior:
                 graph_dict[to_] = new_
 
         # step 2 : add starting node to graph
-
         from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
         node_1, node_2 = graph_list[from_], graph_list[to_]
         cost_1, cost_2 = abs(start[0] - node_1[0]) + abs(start[1] - node_1[1]), abs(
@@ -128,8 +127,8 @@ class PacmanBehavior:
         graph_dict[new_index] = [[from_, cost_1], [to_, cost_2]]
         graph_dict[from_] = graph_dict[from_] + [[new_index, cost_1]]
         graph_dict[to_] = graph_dict[to_] + [[new_index, cost_2]]
-
         # step 3 : add destination node to graph
+
         from_, to_ = self.get_index_connection(graph_list, graph_dict, destination)
         node_1, node_2 = graph_list[from_], graph_list[to_]
         cost_1, cost_2 = abs(destination[0] - node_1[0]) + abs(destination[1] - node_1[1]), abs(
@@ -200,6 +199,22 @@ class PacmanBehavior:
         else:
             return tuple((food_pos[0], best_found))
 
+    def check_destination_close(self, position, w, h, obs, destination, possible_moves_):
+        pacman_x = position[0]
+        pacman_y = position[1]
+        for direction in possible_moves_:
+            step = 1
+            posx = pacman_x
+            posy = pacman_y
+            while not self.check_collision(posx, posy, w, h, obs):
+                print(posx, posy, destination, w, h)
+                posx = pacman_x + step * direction[0]
+                posy = pacman_y + step * direction[1]  # + h * (direction[1]-2*abs(direction[1]))
+                if posx == destination[0] and posy == destination[1]:
+                    return direction
+                step += 1
+        return None
+
     def action_from_state(self, obs, player):
         """
         :param obs: current game state (arena.actors, list)
@@ -244,7 +259,8 @@ class PacmanBehavior:
 
         # point on the map where you want to move pacman
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
-        destination = (48, 8)
+        destination = (8, 188)
+        destination = self.correct_cookie_position(destination, nodes_list.copy(), nodes_dic.copy())
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
 
         try:
@@ -262,12 +278,23 @@ class PacmanBehavior:
 
         # hardcode collision check, because the graph is not perfect --> because the walls and object position has
         # been coded with the ass...
-        possible_moves = self.get_next_moves((pacman_x, pacman_y), w, h, ghosts + walls)
+        possible_moves = self.get_next_moves((pacman_x, pacman_y), w, h, walls)
+        print(possible_moves)
         if tuple(next_move) in possible_moves:
             self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
         elif len(possible_moves) > 0:
             pm = possible_moves[0]
             self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
+
+        if abs(destination[0] - pacman_x) + abs(destination[1] - pacman_y) < 40:
+            print('inside')
+            ## j'ai pas mis les 2 ifs ensemble sinon il va check_desination_close tout le temps ça va être lourd
+            retdir = self.check_destination_close((pacman_x, pacman_y), w, h, walls + ghosts, destination,
+                                                  possible_moves)
+            print(retdir)
+            if retdir is not None:
+                self.action_dx = retdir[0]
+                self.action_dy = retdir[1]
 
         # 4 direction possible --> 1,0 | 0,1 | -1,0 | 0,-1 = right | up | left | down
         # example
