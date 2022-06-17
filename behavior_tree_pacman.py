@@ -9,7 +9,6 @@ class PacmanBehavior:
     def __init__(self):
         self.graph_list = None
         self.graph_dict = None
-        self.count = 0
         self.dir = 0
         self.action_dx = 0
         self.action_dy = 0
@@ -181,13 +180,18 @@ class PacmanBehavior:
             posx = pacman_x
             posy = pacman_y
             while not self.check_collision(posx, posy, w, h, obs):
-                #print(posx, posy, destination, w, h)
+                # print(posx, posy, destination, w, h)
                 posx = pacman_x + step * direction[0]
                 posy = pacman_y + step * direction[1]  # + h * (direction[1]-2*abs(direction[1]))
                 if posx == destination[0] and posy == destination[1]:
                     return direction
                 step += 1
         return None
+
+    def correct_destination(self, destination, food, power):
+        if destination in [elem.get_pos() for elem in power + food]:  # apply offset to food and bonus
+            destination = (destination[0] - 4, destination[1] - 4)
+        return self.correct_cookie_position(destination, nodes_list.copy(), nodes_dic.copy())  # fail safe
 
     def action_from_state(self, obs, player, destination=(48, 8)):
         """
@@ -204,7 +208,7 @@ class PacmanBehavior:
         ghosts = []
         food = []
         walls = []
-        bonus = []
+        power = []
         for elem in obs:
             if isinstance(elem, Ghost):
                 ghosts.append(elem)
@@ -212,29 +216,19 @@ class PacmanBehavior:
                 food.append(elem)
             elif isinstance(elem, Wall):
                 walls.append(elem)
-            elif isinstance(elem, Bonus):
+            elif isinstance(elem, Power):
                 # when pacman eats a bonus, he enters a bonus state (check with pacman.bonus_sprite) , it lasts a few
                 # seconds during which he cant eat ghosts
-                bonus.append(elem)
-        # example list containing manathan distance from pacman to each ghost
-        dist_ghost = [d[0] + d[1] for d in
-                      np.abs([np.subtract(elem.get_pos(), (pacman_x, pacman_y)) for elem in ghosts])]
-        # example
-        for count, elem in enumerate(dist_ghost):
-            if elem < 50:
-                print(
-                    f'ghost is near at dist = {elem}, ghost number = {count}, at position = {ghosts[count].get_pos()}')
+                power.append(elem)
 
-        """
-        PUT CODE HERE TO PROCESS THE INFORMATIONS (GHOSTS, WALLS, FOOD) based on tree rules
-        Then gives the destination you want pacman to go
-        """
-
-        # point on the map where you want to move pacman
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
 
-        destination = (8, 184)  # food and bonus have an offset of (-4,-4) , this is the real pacman-accessible position of the bonus (12,188)
+        destination = (12,
+                       188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
+        destination = self.correct_destination(destination, food, power)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
+
+        # THIS OUTPUTS THE CORRECT DESTINATION (12,188) transformed in (8,184)
 
         try:
             # generates a graph from the map
@@ -243,11 +237,6 @@ class PacmanBehavior:
                                                                graph_list=nodes_list.copy(),
                                                                graph_dict=nodes_dic.copy())
 
-            # Important : correct_cookie_position check juste que la destination soit accessible,
-            # et sinon renvoie la position accessible la plus proche, elle ne corrige pas l'offset de la bouffe/bonus etc...
-            # elle permet juste d'éviter un crash ou pacman qui ne bouge plus (c'est au cas où on va dire, vu les prob de collision/coordonnées dans le jeu)
-
-            destination = self.correct_cookie_position(destination, self.graph_list, self.graph_dict)
             # return the next move to reach the destination (from dijkstra shortest path)
             next_move = self.get_next_dir(self.graph_dict, destination, self.graph_list, (pacman_x, pacman_y))
 
@@ -270,11 +259,6 @@ class PacmanBehavior:
             if retdir is not None:
                 self.action_dx = retdir[0]
                 self.action_dy = retdir[1]
-
-        # 4 direction possible --> 1,0 | 0,1 | -1,0 | 0,-1 = right | up | left | down
-        # example
-        # action_dx, action_dy = -1, 0  # move pacman left
-        self.count += 1
 
         return self.action_dx, self.action_dy
 
