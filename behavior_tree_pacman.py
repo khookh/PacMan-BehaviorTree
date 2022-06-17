@@ -189,9 +189,27 @@ class PacmanBehavior:
         return None
 
     def correct_destination(self, destination, food, power):
+
         if destination in [elem.get_pos() for elem in power + food]:  # apply offset to food and bonus
             destination = (destination[0] - 4, destination[1] - 4)
         return self.correct_cookie_position(destination, nodes_list.copy(), nodes_dic.copy())  # fail safe
+
+    def check_close_collision(self, next_move, position, destination, w, h, ghosts, walls):
+
+        possible_moves = self.get_next_moves(position, w, h, ghosts + walls)
+        if tuple(next_move) in possible_moves:
+            self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
+        elif len(possible_moves) > 0:
+            pm = possible_moves[0]
+            self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
+
+        if abs(destination[0] - position[0]) + abs(destination[1] - position[1]) < 40:
+            # j'ai pas mis les 2 ifs ensemble sinon il va check_desination_close tout le temps ça va être lourd
+            retdir = self.check_destination_close(position, w, h, walls + ghosts, destination,
+                                                  possible_moves)
+            if retdir is not None:
+                self.action_dx = retdir[0]
+                self.action_dy = retdir[1]
 
     def action_from_state(self, obs, player, destination=(48, 8)):
         """
@@ -245,20 +263,8 @@ class PacmanBehavior:
 
         # hardcode collision check, because the graph is not perfect --> because the walls and object position has
         # been coded with the ass...
-        possible_moves = self.get_next_moves((pacman_x, pacman_y), w, h, ghosts + walls)
-        if tuple(next_move) in possible_moves:
-            self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
-        elif len(possible_moves) > 0:
-            pm = possible_moves[0]
-            self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
 
-        if abs(destination[0] - pacman_x) + abs(destination[1] - pacman_y) < 40:
-            # j'ai pas mis les 2 ifs ensemble sinon il va check_desination_close tout le temps ça va être lourd
-            retdir = self.check_destination_close((pacman_x, pacman_y), w, h, walls + ghosts, destination,
-                                                  possible_moves)
-            if retdir is not None:
-                self.action_dx = retdir[0]
-                self.action_dy = retdir[1]
+        self.check_close_collision(next_move, (pacman_x, pacman_y), destination, w, h, ghosts, walls)
 
         return self.action_dx, self.action_dy
 
