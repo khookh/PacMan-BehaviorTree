@@ -241,8 +241,7 @@ class PacmanBehavior:
 
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
 
-        destination = (12,
-                       188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
+        #destination = (12, 188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
         destination = self.correct_destination(destination, food, power)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
 

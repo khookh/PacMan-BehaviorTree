@@ -30,38 +30,43 @@ sprites = pygame.image.load('pacman_sprites.png')
 playing = True
 pacman.direction(-2, 0)
 c = 0
-pb = PacmanBehavior()
-#btree = BehaviorTree(arena, pacman)
+#pb = PacmanBehavior()
+btree = BehaviorTree(arena, pacman)
 #btree.tick_tree()
 
 #pacpos = pacman.get_pos()
+#count = 0
 while playing:
     #count += 1
     screen.fill((0, 0, 0))
     screen.blit(background, (0, 0))
 
     ###### TEMP
-    dx, dy = pb.action_from_state(arena.actors(), pacman)
-    pacman.direction(dx, dy)
+    #dx, dy = pb.action_from_state(arena.actors(), pacman)
+    #pacman.direction(dx, dy)
     ###### TEMP
     #if pacpos != pacman.get_pos():
     #    btree.tick_tree()
     #    pacpos = pacman.get_pos()
+    #if count == 1:
+        #btree.tick_tree()
+    #    count = 0
 
+    btree.tick_once()
 
     for e in pygame.event.get():
         if e.type == pygame.QUIT:
             playing = False
             esc = True
-        elif e.type == pygame.KEYDOWN:
-            if e.key in (K_RIGHT, K_d):
-                pacman.direction(2, 0)
-            elif e.key in (K_LEFT, K_a):
-                pacman.direction(-2, 0)
-            elif e.key in (K_UP, K_w):
-                pacman.direction(0, -2)
-            elif e.key in (K_DOWN, K_s):
-                pacman.direction(0, 2)
+    #    elif e.type == pygame.KEYDOWN:
+    #        if e.key in (K_RIGHT, K_d):
+    #            pacman.direction(2, 0)
+    #        elif e.key in (K_LEFT, K_a):
+    #            pacman.direction(-2, 0)
+    #        elif e.key in (K_UP, K_w):
+    #           pacman.direction(0, -2)
+    #        elif e.key in (K_DOWN, K_s):
+    #            pacman.direction(0, 2)
             if e.key == pygame.K_ESCAPE:
                 playing = False
                 esc = True

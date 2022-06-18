@@ -142,7 +142,7 @@ class FindClosestPill(py_trees.behaviour.Behaviour):
         #print(self.pill.get_pos())
         new_status = py_trees.common.Status.SUCCESS if self.pill_found else py_trees.common.Status.FAILURE
         if new_status == py_trees.common.Status.SUCCESS:
-            self.feedback_message = "Closest power found !"
+            self.feedback_message = "Closest power found at " + str(self.pill.get_pos())
         else:
             self.feedback_message = "Not found"
         self.logger.debug(
@@ -211,7 +211,7 @@ class ExecutePlan(py_trees.behaviour.Behaviour):
         super(ExecutePlan, self).__init__(name)
         self.arena = arena
         self.pacman = pacman
-        self.destination = destination.position()
+        self.destination_object = destination
         self.logger.debug("%s.__init__()" % (self.__class__.__name__))
 
     def setup(self):
@@ -222,20 +222,22 @@ class ExecutePlan(py_trees.behaviour.Behaviour):
         """Reset a counter variable."""
         self.logger.debug("%s.initialise()" % (self.__class__.__name__))
         self.pb = PacmanBehavior()
+        self.destination = self.destination_object.position()
 
     def update(self):
         """Increment the counter and decide on a new status."""
-        if self.destination == self.pacman.get_pos():
+        corrected_destination = (self.destination[0] - 4, self.destination[1] - 4)
+        if corrected_destination == self.pacman.get_pos():
             new_status = py_trees.common.Status.SUCCESS
         else:
             new_status = py_trees.common.Status.RUNNING
-            dx, dy = self.pb.action_from_state(self.arena.actors(), self.pacman)
+            dx, dy = self.pb.action_from_state(self.arena.actors(), self.pacman, destination=self.destination)
             self.pacman.direction(dx, dy)
 
         if new_status == py_trees.common.Status.SUCCESS:
             self.feedback_message = "Arrived at destination!"
         else:
-            self.feedback_message = "Moving to destination! " + str(self.destination)
+            self.feedback_message = "Moving to destination " + str(corrected_destination)
         self.logger.debug(
             "%s.update()[%s->%s][%s]" % (
                 self.__class__.__name__,
@@ -312,31 +314,44 @@ class BehaviorTree:
         root = py_trees.composites.Selector("Selector")
 
         foodAvailable = FoodAvailable(arena)
-        inverter = py_trees.decorators.Inverter(foodAvailable)
+        inverter1 = py_trees.decorators.Inverter(foodAvailable)
 
+
+        seq1 = py_trees.composites.Sequence("Sequence")
+
+        sel2 = py_trees.composites.Selector("Selector")
         pillsAvailable = PillsAvailable(arena)
         inverter2 = py_trees.decorators.Inverter(pillsAvailable)
 
+        seq2 = py_trees.composites.Sequence("Sequence")
+        sel3 = py_trees.composites.Selector("Selector")
         ghostTooClose = GhostTooClose(arena)
         inverter3 = py_trees.decorators.Inverter(ghostTooClose)
+        avoidGhost = AvoidGhost(arena, pacman)
+        sel3.add_children([inverter3, avoidGhost])
 
+        seq3 = py_trees.composites.Sequence('Sequence')
         findClosestPill = FindClosestPill(arena)
-
         executePlan = ExecutePlan(arena, pacman, findClosestPill)
+        seq3.add_children([findClosestPill, executePlan])
 
-        rr = py_trees.composites.Sequence("Sequence")
-        rr.add_children([findClosestPill, executePlan])
+        seq2.add_children([sel3, seq3])
+        sel2.add_children([inverter2, seq2])
+        low = py_trees.behaviours.Failure(name="Low Priority")
+        seq1.add_children([sel2, low])
+
+
+        root.add_children([inverter1, seq1])
 
         findClosestFood = FindClosestFood(arena)
-
-        avoidGhost = AvoidGhost(arena, pacman)
 
         #high = py_trees.behaviours.Success(name="High Priority")
         med = py_trees.behaviours.Success(name="Med Priority")
         low = py_trees.behaviours.Failure(name="Low Priority")
         #root.add_children([inverter, inverter2, inverter3, findClosestPill, findClosestFood, med, low])
         #root.add_children([inverter, inverter2, rr])
-        root.add_children([inverter, inverter2, avoidGhost])
+        #root.add_children([inverter, inverter2, avoidGhost])
+
 
 
         self.behaviour_tree = py_trees.trees.BehaviourTree(root=root)
@@ -359,3 +374,8 @@ class BehaviorTree:
         except KeyboardInterrupt:
             self.behaviour_tree.interrupt()
 
+
+    def tick_once(self):
+        def print_tree(tree):
+            print(py_trees.display.unicode_tree(root=tree.root, show_status=True))
+        self.behaviour_tree.tick(post_tick_handler=print_tree)
