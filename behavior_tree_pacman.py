@@ -101,7 +101,7 @@ class PacmanBehavior:
 
     def trim_graph(self, start, ghosts, destination, graph_list, graph_dict):
         # step 1 : removes connection between nodes where a ghost is
-        for ghost_pos in [ghost.get_pos() for ghost in ghosts]:
+        """for ghost_pos in [ghost.get_pos() for ghost in ghosts]:
             from_, to_ = self.get_index_connection(graph_list, graph_dict, ghost_pos)
             if from_ is not None:
                 new_ = []
@@ -114,7 +114,7 @@ class PacmanBehavior:
                     if e[0] != from_:
                         new_.append(e)
                 graph_dict[to_] = new_
-
+        """
         # step 2 : add starting node to graph
 
         from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
@@ -211,7 +211,7 @@ class PacmanBehavior:
                 self.action_dx = retdir[0]
                 self.action_dy = retdir[1]
 
-    def action_from_state(self, obs, player, destination=(48, 8)):
+    def action_from_state(self, obs, player, destination):
         """
         :param destination:
         :param obs: current game state (arena.actors, list)
@@ -242,8 +242,9 @@ class PacmanBehavior:
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
 
         #destination = (12, 188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
-        destination = self.correct_destination(destination, food, power)
+        #destination = self.correct_destination(destination, food, power)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
+        
 
         # THIS OUTPUTS THE CORRECT DESTINATION (12,188) transformed in (8,184)
 

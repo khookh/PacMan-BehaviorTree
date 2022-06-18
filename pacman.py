@@ -14,7 +14,7 @@ class PacmanArena(Arena):
 
     def __init__(self, width: int, height: int):
         self._w, self._h = width, height
-        self._lifes = 2  # Vite; si perde a -1
+        self._lifes = 5  # Vite; si perde a -1
         self._actors = []
         ## Inizializzazione dei personaggi del gioco
         for x, y, w, h in walls_pos: Wall(self, x, y, w, h)
@@ -96,7 +96,7 @@ class PacmanArena(Arena):
 
     def ghostTooClose(self):  # Ammar function
         tooClose = False
-        safe_distance = 30      # Parameter
+        safe_distance = 40      # Parameter
         pacman = self.getPacMan()
         for a in self._actors:
             if isinstance(a, Ghost):
