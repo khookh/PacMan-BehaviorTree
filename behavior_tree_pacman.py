@@ -186,6 +186,8 @@ class PacmanBehavior:
                 if posx == destination[0] and posy == destination[1]:
                     return direction
                 step += 1
+                if step > 300:
+                    break
         return None
 
     def correct_destination(self, destination, food, power):
@@ -195,7 +197,9 @@ class PacmanBehavior:
         return self.correct_cookie_position(destination, nodes_list.copy(), nodes_dic.copy())  # fail safe
 
     def check_close_collision(self, next_move, position, destination, w, h, ghosts, walls):
-
+        gen = (x for x in ghosts if (x.getStatus() != 2 and x.getStatus() != 3))
+        ghosts = [g for g in gen]
+        print((len(ghosts),)*40)
         possible_moves = self.get_next_moves(position, w, h, ghosts + walls)
         if tuple(next_move) in possible_moves:
             self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
@@ -203,11 +207,11 @@ class PacmanBehavior:
             pm = possible_moves[0]
             self.action_dx, self.action_dy = int(pm[0]), int(pm[1])
 
-        if abs(destination[0] - position[0]) + abs(destination[1] - position[1]) < 40:
+        if abs(destination[0] - position[0]) + abs(destination[1] - position[1]) < 80:
             # j'ai pas mis les 2 ifs ensemble sinon il va check_desination_close tout le temps ça va être lourd
             retdir = self.check_destination_close(position, w, h, walls + ghosts, destination,
                                                   possible_moves)
-            if retdir is not None:
+            if retdir is not None and retdir in possible_moves:
                 self.action_dx = retdir[0]
                 self.action_dy = retdir[1]
 
@@ -238,13 +242,12 @@ class PacmanBehavior:
                 # when pacman eats a bonus, he enters a bonus state (check with pacman.bonus_sprite) , it lasts a few
                 # seconds during which he cant eat ghosts
                 power.append(elem)
-
+        destination = self.correct_cookie_position(destination, nodes_list.copy(), nodes_dic.copy())
         # destination = (40, 232)  # destination = (48, 8)  # destination = (208, 208) # example
 
-        #destination = (12, 188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
-        #destination = self.correct_destination(destination, food, power)
+        # destination = (12, 188)  # food and bonus have an offset of (-4,-4) , the real pacman-accessible position of the bonus is (8,184)
+        # destination = self.correct_destination(destination, food, power)
         print(f'Pacman goal is, x={destination[0]}, y={destination[1]}')
-        
 
         # THIS OUTPUTS THE CORRECT DESTINATION (12,188) transformed in (8,184)
 
@@ -263,7 +266,6 @@ class PacmanBehavior:
 
         # hardcode collision check, because the graph is not perfect --> because the walls and object position has
         # been coded with the ass...
-
         self.check_close_collision(next_move, (pacman_x, pacman_y), destination, w, h, ghosts, walls)
 
         return self.action_dx, self.action_dy
