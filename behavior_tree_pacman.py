@@ -4,7 +4,6 @@ from map_graph import *
 import numpy as np
 import heapq
 
-
 class PacmanBehavior:
     def __init__(self):
         self.graph_list = None
@@ -100,8 +99,10 @@ class PacmanBehavior:
         return None, None
 
     def trim_graph(self, start, ghosts, destination, graph_list, graph_dict):
+        gen = (x for x in ghosts if (x.getStatus() != 2 and x.getStatus() != 3))
+        ghosts = [g for g in gen]
         # step 1 : removes connection between nodes where a ghost is
-        """for ghost_pos in [ghost.get_pos() for ghost in ghosts]:
+        for ghost_pos in [ghost.get_pos() for ghost in ghosts]:
             from_, to_ = self.get_index_connection(graph_list, graph_dict, ghost_pos)
             if from_ is not None:
                 new_ = []
@@ -114,7 +115,7 @@ class PacmanBehavior:
                     if e[0] != from_:
                         new_.append(e)
                 graph_dict[to_] = new_
-        """
+
         # step 2 : add starting node to graph
 
         from_, to_ = self.get_index_connection(graph_list, graph_dict, start)
@@ -199,7 +200,6 @@ class PacmanBehavior:
     def check_close_collision(self, next_move, position, destination, w, h, ghosts, walls):
         gen = (x for x in ghosts if (x.getStatus() != 2 and x.getStatus() != 3))
         ghosts = [g for g in gen]
-        print((len(ghosts),)*40)
         possible_moves = self.get_next_moves(position, w, h, ghosts + walls)
         if tuple(next_move) in possible_moves:
             self.action_dx, self.action_dy = int(next_move[0]), int(next_move[1])
@@ -214,6 +214,8 @@ class PacmanBehavior:
             if retdir is not None and retdir in possible_moves:
                 self.action_dx = retdir[0]
                 self.action_dy = retdir[1]
+
+
 
     def action_from_state(self, obs, player, destination):
         """
